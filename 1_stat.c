@@ -1,73 +1,106 @@
 //реализовать stat
 
-#define _FILE_OFFSET_BITS 64
-
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <time.h>
+#define _GNU_SOURCE
+#include <fcntl.h>
+#include <grp.h>
+#include <pwd.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <sys/sysmacros.h>
-#include <errno.h>
+#include <sys/types.h>
+#include <time.h>
+#include <unistd.h>
+//#include <linux/fcntl.h>
+#define BUFF_SIZE 128
 
-
-
-const char* device_type(const mode_t mode) {
-    switch (mode & S_IFMT) {
-        case S_IFBLK:   return "block device";
-        case S_IFCHR:   return "character device";
-        case S_IFDIR:   return "directory";
-        case S_IFIFO:   return "FIFO/pipe";
-        case S_IFLNK:   return "symbolic link";
-        case S_IFREG:   return "regular file";
-        case S_IFSOCK:  return "socket";
-    }
-    return "unknown";
+const char *mode(unsigned st) {
+  switch (st & S_IFMT) {
+  case S_IFBLK:
+    return "block device";
+  case S_IFCHR:
+    return "character device";
+  case S_IFDIR:
+    return "directory";
+  case S_IFIFO:
+    return "FIFO/pipe";
+  case S_IFLNK:
+    return "symlink";
+  case S_IFREG:
+    return "regular file";
+  case S_IFSOCK:
+    return "socket";
+  default:
+    return "unknown?";
+  }
 }
 
+static void printf_time(const char *type, struct statx_timestamp *ts) {
+  struct tm time;
+  time_t time_;
+  char buff[BUFF_SIZE];
 
-int main(int argc, char* argv[]) {
-    if(argc != 2) {
-        fprintf(stderr, "Incorrect argc: %d\n", argc);
-        exit(EXIT_FAILURE);
-    }
+  time_ = ts->tv_sec;
+  time = *localtime_r(&time_, &time);
+  strftime(buff, BUFF_SIZE, "%F %T", &time);
+  printf("%s %s.%09u ", type, buff, ts->tv_nsec);
+  strftime(buff, BUFF_SIZE, "%z", &time);
+  printf("%s\n", buff);
+}
 
-    struct stat sb;
+char *user_name(uid_t uid) {
+  struct passwd *info;
+  info = getpwuid(uid);
 
-    if(lstat(argv[1], &sb) == -1) { // почему тут именно lstat?
-        perror("lstat");
-        exit(EXIT_FAILURE);
-    }
+  return (info == NULL) ? NULL : info->pw_name;
+}
 
-    printf("File type:              %s\n", device_type(sb.st_mode));
-    printf("INode:                  %ld\n", (long)sb.st_ino);
-    printf("Access mode:            %lo (octal)\n", (unsigned long)sb.st_mode);
-    printf("number of links:        %ld\n", (long)sb.st_nlink);
-    printf("Owner:                  UID=%ld\tGID=%ld\n", (long)sb.st_uid, (long)sb.st_gid);
-    printf("preferred block size:   %ld byte\n", (long)sb.st_blksize);
-    printf("File size:              %lld byte\n", (long long)sb.st_size);
-    printf("Allocated blocks:       %lld\n", (long long)sb.st_blocks);
+char *group_name(uid_t uid) {
+  struct group *info;
+  info = getgrgid(uid);
 
-    const size_t time_str_size = sizeof("Day Mon dd hh:mm:ss yyyy\n");
+  return (info == NULL) ? NULL : info->gr_name;
+}
 
-    struct tm curr_time;
-    char buf[time_str_size];
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    fprintf(stderr, "Usage: %s <pathname> \n", argv[0]);
+    exit(EXIT_FAILURE);
+  }
 
-    const char fmt[] = "%a %b %d %H:%M:%S %Y";
-    
-    if(!strftime(buf, sizeof(buf), fmt, gmtime_r(&sb.st_ctime, &curr_time))) {
-        exit(EXIT_FAILURE);
-    }
-    printf("C_TIME                  %s\n", buf);
-    if(!strftime(buf, sizeof(buf), fmt, gmtime_r(&sb.st_atime, &curr_time))) {
-        exit(EXIT_FAILURE);
-    }
-    printf("A_TIME                  %s\n", buf);
-    if(!strftime(buf, sizeof(buf), fmt, gmtime_r(&sb.st_mtime, &curr_time))) {
-        exit(EXIT_FAILURE);
-    }
-    printf("M_TIME                  %s\n", buf);
+  struct statx st;
 
-    return 0;
+  if (statx(AT_FDCWD, argv[1], AT_STATX_SYNC_AS_STAT, STATX_ALL, &st) == -1) {
+    perror("statx");
+    exit(EXIT_FAILURE);
+  }
+  printf("Fail: %s\n", argv[1]);
+
+  printf("File size: %d bytes\tBlocks allocated: %d\tPreferred I/O block size: "
+         "%d bytes\t%s\n",
+         (unsigned)st.stx_size, (unsigned)st.stx_blocks,
+         (unsigned)st.stx_blksize, mode(st.stx_mode));
+
+  printf("ID of containing device: %d, %d \tI-node number: %d\tLink count: %d\t\n",
+         (unsigned)major(st.stx_dev_major), (unsigned)minor(st.stx_dev_minor),
+         (unsigned)st.stx_ino, (unsigned)st.stx_nlink);
+
+  printf("Acces:  (0%jo/", (uintmax_t)st.stx_mode & 0777);
+  printf((st.stx_mode & S_IFMT) & S_IFDIR ? "d" : "-");
+
+  for (int i = 0; i < 9; i++) {
+    putchar(((st.stx_mode & 0777) & (1 << (8 - i))) ? "rwx"[i % 3] : '-');
+  }
+
+  printf(")\t");
+  printf("Uid: (%d/\t%s)\tGid: (%d/\t%s)\n", (unsigned)st.stx_uid,
+         user_name(st.stx_uid), (unsigned)st.stx_gid, group_name(st.stx_gid));
+
+  printf_time("Last file access: ", &st.stx_atime);
+  printf_time("Last status change: ", &st.stx_ctime);
+  printf_time("Last file modification: ", &st.stx_mtime);
+  printf_time("Creation: ", &st.stx_btime);
+
+  exit(EXIT_SUCCESS);
 }
