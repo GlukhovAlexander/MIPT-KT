@@ -34,20 +34,20 @@ int main(int argc, char * argv[])
 		return 1; 
 	}
 
-//Если файл для записи не открывается тоько для чтения, ...
-	int fd = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC, 0644); 
+//Создание переменной fd
+	int fd = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC, 0644); //Если файл не открылся для записи, fd = -1; если файла нет, то создаём, если в файле есть содержимое, стираем его
 
 //Выход с ошибкой, если файл не окрылся для чтения
 	if (fd < 0) 
 	{
-		perror("Failed to open file for writing"); //вывод в поток ошибок
+		perror("File cannot be opened for writing"); //вывод в поток ошибок
 		return 2;
 	}
 
-//Выход с ошибкой, если 
+//Выход с ошибкой, если  ошибка в методе write
 	if (write_all(fd, argv[2], strlen(argv[2])) < 0)
 	{
-		perror("Failed to write"); 
+		perror("Failure during writing"); 
 		close(fd); 
 		return 3;
 	}
