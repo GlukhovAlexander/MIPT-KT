@@ -12,7 +12,6 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-//#include <linux/fcntl.h>
 #define BUFF_SIZE 128
 
 const char *mode(unsigned st) {
@@ -64,36 +63,36 @@ char *group_name(uid_t uid) {
 }
 
 int main(int argc, char *argv[]) {
-\\завершение с ошибкой в случае неправильного ввода
+//завершение с ошибкой в случае неправильного ввода
   if (argc != 2) {
     fprintf(stderr, "Usage: %s <pathname> \n", argv[0]);
     exit(EXIT_FAILURE);
   } 
 
-\\создаём структуру
+//создаём структуру
   struct statx st;
 
-\\натравливаем statx на файл и передаём в структуру информацию о файле
+//натравливаем statx на файл и передаём в структуру информацию о файле
   if (statx(AT_FDCWD, argv[1], AT_STATX_SYNC_AS_STAT, STATX_ALL, &st) == -1) {
     perror("statx");
     exit(EXIT_FAILURE);
   }
   
-\\Имя
+//Имя
   printf("Fail: %s\n", argv[1]);
 
-\\Размер(количество блоков, их размер)
+//Размер(количество блоков, их размер)
   printf("File size: %d bytes\tBlocks allocated: %d\tPreferred I/O block size: "
          "%d bytes\t%s\n",
          (unsigned)st.stx_size, (unsigned)st.stx_blocks,
          (unsigned)st.stx_blksize, mode(st.stx_mode));
 
-\\ID девайса, на котором файл
+//ID девайса, на котором файл
   printf("ID of containing device: %d, %d \tI-node number: %d\tLink count: %d\t\n",
          (unsigned)major(st.stx_dev_major), (unsigned)minor(st.stx_dev_minor),
          (unsigned)st.stx_ino, (unsigned)st.stx_nlink);
 
-\\Доступ
+//Доступ
   printf("Acces:  (0%jo/", (uintmax_t)st.stx_mode & 0777);
   printf((st.stx_mode & S_IFMT) & S_IFDIR ? "d" : "-");
 
@@ -101,12 +100,12 @@ int main(int argc, char *argv[]) {
     putchar(((st.stx_mode & 0777) & (1 << (8 - i))) ? "rwx"[i % 3] : '-');
   }
 
-\\Выводим user_id group_id и используем ранее реализованные функции для вывода user_name group_name
+//Выводим user_id group_id и используем ранее реализованные функции для вывода user_name group_name
   printf(")\t");
   printf("Uid: (%d/\t%s)\tGid: (%d/\t%s)\n", (unsigned)st.stx_uid,
          user_name(st.stx_uid), (unsigned)st.stx_gid, group_name(st.stx_gid));
 
-\\Время
+//Время
   printf_time("Last file access: ", &st.stx_atime);
   printf_time("Last status change: ", &st.stx_ctime);
   printf_time("Last file modification: ", &st.stx_mtime);
