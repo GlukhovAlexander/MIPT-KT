@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
   }
   
 //Имя
-  printf("Fail: %s\n", argv[1]);
+  printf("File: %s\n", argv[1]);
 
 //Размер(количество блоков, их размер)
   printf("File size: %d bytes\tBlocks allocated: %d\tPreferred I/O block size: "
@@ -110,6 +110,3 @@ int main(int argc, char *argv[]) {
   printf_time("Last status change: ", &st.stx_ctime);
   printf_time("Last file modification: ", &st.stx_mtime);
   printf_time("Creation: ", &st.stx_btime);
-
-  exit(EXIT_SUCCESS);
-}
