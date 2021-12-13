@@ -18,7 +18,7 @@ int main(void) {
 	}
 	//выполняется в дочернем процессе 
 	if (child_id == 0) {
-		//dup2 дублирует файловый дискриптор
+		//dup2 дублирует файловый дескриптор
 		if (dup2(fileno(stderr), fileno(stdout)) < 0) {
 			perror("dup2");
 		}
