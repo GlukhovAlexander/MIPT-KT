@@ -1,113 +1,101 @@
-//реализовать stat
-
-#define _GNU_SOURCE
-#include <fcntl.h>
-#include <grp.h>
-#include <pwd.h>
-#include <stdint.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <sys/sysmacros.h>
-#include <sys/types.h>
-#include <time.h>
+#include <string.h>
+#include <linux/stat.h>
+#include <linux/fcntl.h>
+#include <sys/time.h>
 #include <unistd.h>
-#define BUFF_SIZE 128
+#include <stdint.h>
+#include <grp.h>
+#include <pwd.h>
+#define _GNU_SOURCE
 
-const char *mode(unsigned st) {
-  switch (st & S_IFMT) {
-  case S_IFBLK:
-    return "block device";
-  case S_IFCHR:
-    return "character device";
-  case S_IFDIR:
-    return "directory";
-  case S_IFIFO:
-    return "FIFO/pipe";
-  case S_IFLNK:
-    return "symlink";
-  case S_IFREG:
-    return "regular file";
-  case S_IFSOCK:
-    return "socket";
-  default:
-    return "unknown?";
-  }
+
+// Функция для вывода даты и времени с миллисекундами	
+
+static void print_time(const char *type, struct timespec *ts) {
+
+        time_t tv_sec = (time_t) ts->tv_sec;
+        char buffer[sizeof("YYYY-mm-dd HH:MM:SS")];
+        struct tm *tm = localtime(&tv_sec);
+        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm);
+        printf ("%s %s.%09lu ", type, buffer, ts->tv_nsec);
+        strftime(buffer, sizeof(buffer), "%z", tm);
+        printf("%s\n", buffer);
 }
 
-static void printf_time(const char *type, struct statx_timestamp *ts) {
-  struct tm time;
-  time_t time_;
-  char buff[BUFF_SIZE];
 
-  time_ = ts->tv_sec;
-  time = *localtime_r(&time_, &time);
-  strftime(buff, BUFF_SIZE, "%F %T", &time);
-  printf("%s %s.%09u ", type, buff, ts->tv_nsec);
-  strftime(buff, BUFF_SIZE, "%z", &time);
-  printf("%s\n", buff);
+//Тип файла
+const char * filetype (unsigned int mode)
+{
+	switch (mode & S_IFMT) {
+                case S_IFBLK: return("block device");
+                case S_IFCHR: return("character device");
+                case S_IFDIR: return("directory");
+                case S_IFIFO: return("FIFO/pipe");
+                case S_IFLNK: return("symlink");
+                case S_IFREG: return("regular file");
+                case S_IFSOCK: return("socket");
+                default: return("unknown?");
+	}
 }
 
-char *user_name(uid_t uid) {
-  struct passwd *info;
-  info = getpwuid(uid);
-
-  return (info == NULL) ? NULL : info->pw_name;
+//Права
+char * rights (mode_t mode)
+{
+	char * mode_rights = malloc (sizeof("rwxrwxrwx"));
+	int i = 8;
+	for (i = 8; i >= 0; i--)
+	       mode_rights[8-i] = (mode & (1 << i) ? "xwr"[i%3]: '-');
+	mode_rights[9] = '\0';
+	return mode_rights;
+}
+// Имя пользователя
+const char * user_name(uid_t uid) {
+	struct passwd *info = getpwuid(uid);
+	return (info == NULL) ? NULL : info -> pw_name;
+}
+//Имя группы
+const char * group_name(uid_t uid) { 
+	struct group *info = getgrgid(uid);
+	return (info == NULL) ? NULL : info -> gr_name;
 }
 
-char *group_name(uid_t uid) {
-  struct group *info;
-  info = getgrgid(uid);
 
-  return (info == NULL) ? NULL : info->gr_name;
-}
+int main(int argc, char *argv[])
+{
+	struct stat sb; 
+	
+	if (argc != 2) {
+		fprintf(stderr, "Usage: %s <pathname>\n", argv[0]);
+		exit(EXIT_FAILURE);
+	}
+	if (lstat(argv[1], &sb) == -1) {
+		perror("lstat");
+		exit(EXIT_FAILURE);
+	}
+	
+	printf("File name %s\n", argv[1]);
+	printf("ID of containing device: [%lxh, %ldd]\n", (long) (sb.st_dev), (long) (sb.st_dev));
+	printf("File type: %s\n", filetype(sb.st_mode));
+	printf("%s", filetype(sb.st_mode));
+	printf("I-node number: %ld\n", (uintmax_t) sb.st_ino);
+	char *permissions_str = rights(sb.st_mode);
+	printf("Mode_rights: (%04o/%s)\n", sb.st_mode & ALLPERMS, permissions_str);
+	free(permissions_str);
+	printf("Link count: %ld\n", (long) sb.st_nlink);
+	printf("Ownership UID=%ld/\t%s   GID=%ld/\t%s\n", (long) sb.st_uid, user_name(sb.st_uid), (long) sb.st_gid, group_name(sb.st_gid));
+	printf("Preferred I/O block size: %ld bytes\n", (long) sb.st_blksize);
+	printf("File size: %lld bytes\n", (long long) sb.st_size);
+	printf("Blocks allocated: %lld\n", (long long) sb.st_blocks);
 
-int main(int argc, char *argv[]) {
-//завершение с ошибкой в случае неправильного ввода
-  if (argc != 2) {
-    fprintf(stderr, "Usage: %s <pathname> \n", argv[0]);
-    exit(EXIT_FAILURE);
-  } 
-
-//создаём структуру
-  struct statx st;
-
-//натравливаем statx на файл и передаём в структуру информацию о файле
-  if (statx(AT_FDCWD, argv[1], AT_STATX_SYNC_AS_STAT, STATX_ALL, &st) == -1) {
-    perror("statx");
-    exit(EXIT_FAILURE);
-  }
-  
-//Имя
-  printf("File: %s\n", argv[1]);
-
-//Размер(количество блоков, их размер)
-  printf("File size: %d bytes\tBlocks allocated: %d\tPreferred I/O block size: "
-         "%d bytes\t%s\n",
-         (unsigned)st.stx_size, (unsigned)st.stx_blocks,
-         (unsigned)st.stx_blksize, mode(st.stx_mode));
-
-//ID девайса, на котором файл
-  printf("ID of containing device: %d, %d \tI-node number: %d\tLink count: %d\t\n",
-         (unsigned)major(st.stx_dev_major), (unsigned)minor(st.stx_dev_minor),
-         (unsigned)st.stx_ino, (unsigned)st.stx_nlink);
-
-//Доступ
-  printf("Acces:  (0%jo/", (uintmax_t)st.stx_mode & 0777);
-  printf((st.stx_mode & S_IFMT) & S_IFDIR ? "d" : "-");
-
-  for (int i = 0; i < 9; i++) {
-    putchar(((st.stx_mode & 0777) & (1 << (8 - i))) ? "rwx"[i % 3] : '-');
-  }
-
-//Выводим user_id group_id и используем ранее реализованные функции для вывода user_name group_name
-  printf(")\t");
-  printf("Uid: (%d/\t%s)\tGid: (%d/\t%s)\n", (unsigned)st.stx_uid,
-         user_name(st.stx_uid), (unsigned)st.stx_gid, group_name(st.stx_gid));
-
-//Время
-  printf_time("Last file access: ", &st.stx_atime);
-  printf_time("Last status change: ", &st.stx_ctime);
-  printf_time("Last file modification: ", &st.stx_mtime);
-  printf_time("Creation: ", &st.stx_btime);
-
+	print_time("Last status change:	  ", &sb.st_ctim);
+        print_time("Last file access:         ", &sb.st_atim);
+        print_time("Last file modification:   ", &sb.st_mtim);
+   
+	exit(EXIT_SUCCESS);
+       }
