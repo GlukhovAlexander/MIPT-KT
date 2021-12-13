@@ -22,19 +22,20 @@ int main(int argc, char * argv[])
 	int fd = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC, 0644); //Если файл не открылся для записи, fd = -1; если файла нет, то создаём, если в файле есть содержимое, стираем его
 
 
-
 //Выход с ошибкой, если файл не окрылся для чтения
+	
 	if (fd < 0) 
 	{
 		perror("File cannot be opened for writing"); //вывод в поток ошибок
 		return 2;
 	}
 
+	int result = 0;
+
 	if (dprintf(fd,"%s", argv[2]) < 0)
 	{
-		perror("Failure during writing"); 
-		close(fd); 
-		return 3;
+		perror("Failure during writing");  
+		result = 3;
 	}
 
 	
@@ -42,10 +43,10 @@ int main(int argc, char * argv[])
 	if (close(fd) < 0) 
 	{
 		perror("Failure during close"); 
-		return 4; 
+		result = 4; 
 	}
 
-	return 0; 
+	return result; 
 }
 
 
