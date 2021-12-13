@@ -45,21 +45,21 @@ int main(int argc, char * argv[])
 	}
 
 //Выход с ошибкой, если  ошибка в методе write
+	int result = 0;
 	if (write_all(fd, argv[2], strlen(argv[2])) < 0)
 	{
-		perror("Failure during writing"); 
-		close(fd); 
-		return 3;
+		perror("Failure during writing");  
+		result = 3;
 	}
 
 //Выход с ошибкой, если файл не закрылся
 	if (close(fd) < 0) 
 	{
 		perror("Failure during close"); 
-		return 4; 
+		result = 4; 
 	}
 
-	return 0; 
+	return result; 
 }
 
 
