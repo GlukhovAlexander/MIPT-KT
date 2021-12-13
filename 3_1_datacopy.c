@@ -1,4 +1,4 @@
-//скопировать данные из одного файла в другой
+//скопировать данные из файла в файл
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -37,21 +37,20 @@ int copy_file (int file_to_copy, int copy_of_the_file)
 
 	ssize_t bytes_read;
 	int result = 0;
-	//считываем информацию, функция read возвращает количество прочитанных байтов
+	//читаем информацию, read возвращает количество прочитанных байтов
 	while ((bytes_read = read(file_to_copy, read_inf, buf_size)) > 0)
 	{
 		//записываем считанную информацию
-		//в writeall передаём куда писать, что и сколько байт (результат функции read)
-		//проверяем на ошибку
-		if (writeall(copy_of_the_file, read_inf, (size_t)bytes_read) < 0)
+		//Передаём в writeall то, что мы будем записывать, куда и какой количество байтов
+		if (writeall(copy_of_the_file, read_inf, (size_t)bytes_read) < 0) //проверка ошибки при записи
 		{
-			perror("File writing error");
+			perror("File writing error"); 
 			result = 8;
 			break;
 		}
 	}
-	//проверяем, что не было ошибки при считывании
-	if (bytes_read < 0)
+	
+	if (bytes_read < 0) //проверка ошибки при считывании
 	{
 		perror("File reading error");
 		result = 7;
@@ -63,20 +62,19 @@ int copy_file (int file_to_copy, int copy_of_the_file)
 
 
 int main (int argc, char const *argv[]) {
-	//проверяем, что передали нужное количество аргументов (что писать и куда)
-	if (argc != 3) {
+
+	if (argc != 3) //выводим ошибку, если неверное количество аргументов
+       	{
 		fprintf(stderr, "Usage: %s less or more arguments", argv[0]);
 		return 1;
 	}
-	//проверяем на ошибку при открытии
+
 	int file_to_copy = open (argv[1], O_RDONLY);
-	if (file_to_copy < 0) {
+	if (file_to_copy < 0) //проверка ошибки при открытии
+       	{
 		perror("failed to open read-file");
 		return 4;
-	}
-	//0644 - -rw-r--r-- 
-	//пользователи -- чтение и запись, группы -- только чтение, остальные -- только чтение
-	//(S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH), 
+	} 
 	
 	int copy_of_the_file = open (argv[2], O_RDWR | O_CREAT | O_TRUNC, 0644);
 	if (copy_of_the_file < 0) {
@@ -85,8 +83,9 @@ int main (int argc, char const *argv[]) {
 	}
 	//вызываем функцию копирования
 	int result = copy_file(file_to_copy, copy_of_the_file);
-	//проверяем на ошибку при закрытии файлов
-	if(close(file_to_copy) < 0) {
+	
+	if(close(file_to_copy) < 0)
+       	{
 		perror("failed to close read-file");
 		result = 9;
 	}
