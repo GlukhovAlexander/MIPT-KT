@@ -65,7 +65,7 @@ int main (int argc, char const *argv[]) {
 
 	if (argc != 3) //выводим ошибку, если неверное количество аргументов
        	{
-		fprintf(stderr, "Usage: %s less or more arguments", argv[0]);
+		fprintf(stderr, "Usage: %s needs 2 arguments", argv[0]);
 		return 1;
 	}
 
