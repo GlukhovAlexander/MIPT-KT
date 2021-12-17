@@ -48,10 +48,19 @@ char * rights (mode_t mode)
 	char * mode_rights = malloc (sizeof("rwxrwxrwx"));
 	int i = 8;
 	for (i = 8; i >= 0; i--)
-	       mode_rights[8-i] = (mode & (1u << i) ? "xwr"[i%3]: '-');
+	       mode_rights[8-i] = (mode & (1 << i) ? "xwr"[i%3]: '-');
+
+	if (S_ISUID & mode)
+		mode_rights[2] = 's';
+	if (S_ISGID & mode)
+		mode_rights[5] = 's';
+	if (S_ISVTX & mode)
+		mode_rights[8] = 't';
 	mode_rights[9] = '\0';
 	return mode_rights;
 }
+
+
 // Имя пользователя
 const char * user_name(uid_t uid) {
 	struct passwd *info = getpwuid(uid);
