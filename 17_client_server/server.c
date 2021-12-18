@@ -15,7 +15,7 @@ void PrintInfo(const char* q_name, struct mq_attr* q_inf) {
     printf("queue name:                %s\n", q_name);
     printf("queue flags :              %ld\n", q_inf->mq_flags);
     printf("Max message amount :       %ld\n", q_inf->mq_maxmsg);
-    printf("Max message size (bytes) : %ld\n", q_inf->mq_msgsize, round(q_inf->mq_msgsize/4096));
+    printf("Max message size (bytes) : %ld\n", q_inf->mq_msgsize);
     printf("Current message amount :   %ld\n", q_inf->mq_curmsgs);
 }
 
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
 
     while (1) {
 
-        size_t message = mq_receive(queue, buf, mq_msgsize, NULL); //количество байтов полученного сообщения
+        size_t message = (size_t)mq_receive(queue, buf, (size_t)mq_msgsize, NULL); //количество байтов полученного сообщения
         if (message == (size_t) -1) { //Проверка ошибки
             perror("mq_receive"); 
             break;
@@ -58,6 +58,5 @@ int main(int argc, char* argv[]) {
     mq_unlink(argv[1]); //удаляет очередь сообщений
     // cleanup:
     mq_close(queue); //удаляет связь между дескриптором очереди сообщений, mqdes, и его очередью сообщений
-    free(buf);
     return 0;
 }
