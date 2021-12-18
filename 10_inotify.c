@@ -30,7 +30,11 @@ void handle_event(int fd, int wd, char* pathname) {
             if(event->mask & IN_CREATE) {
                 printf("IN_CREATE: ");
             }
+
+	    if((event->cookie != 0) && (event -> mask & IN_MOVE)) {
+		printf("IN_MOVE (rename): ");
         }
+
         if(wd == event->wd) {
             printf("%s/", pathname);
         }
@@ -45,11 +49,12 @@ void handle_event(int fd, int wd, char* pathname) {
         }
     }
 }
+}
 
 
 int main(int argc, char* argv[]) {
     if(argc != 2) {
-        perror("argc");
+        perror("Need 2 arguments");
         exit(EXIT_FAILURE);
     }
 
@@ -64,7 +69,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 // выделяем память под дескрипторы 
-    wd = inotify_add_watch(fd, argv[1], IN_CREATE);
+    wd = inotify_add_watch(fd, argv[1], IN_CREATE| IN_MOVE);
     if(wd == -1) {
         perror("inotify_add_watch");
         exit(EXIT_FAILURE);
@@ -97,7 +102,8 @@ int main(int argc, char* argv[]) {
 //доступны события
     		    handle_event(fd, wd, argv[1]);
             }
-        }
+        
+	}
     }
 
     printf("Listening for events stopped.\n");
