@@ -15,7 +15,7 @@ void PrintInfo(const char* q_name, struct mq_attr* q_inf) {
     printf("queue name:                %s\n", q_name);
     printf("queue flags :              %ld\n", q_inf->mq_flags);
     printf("Max message amount :       %ld\n", q_inf->mq_maxmsg);
-    printf("Max message size (bytes) : %ld (%.1f pages)\n", q_inf->mq_msgsize, round(q_inf->mq_msgsize/4096));
+    printf("Max message size (bytes) : %ld\n", q_inf->mq_msgsize, round(q_inf->mq_msgsize/4096));
     printf("Current message amount :   %ld\n", q_inf->mq_curmsgs);
 }
 
