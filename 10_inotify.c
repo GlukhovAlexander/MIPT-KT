@@ -7,6 +7,9 @@
 #include <unistd.h>
 
 #define SIZEOF_BUF  4096
+
+uint32_t cookie = 0;
+
 //проходим по всем событиям, которые можем прочитать из файлового дескриптора 
 void handle_event(int fd, int wd, char* pathname) { 	
 	char buf[SIZEOF_BUF];
@@ -31,27 +34,34 @@ void handle_event(int fd, int wd, char* pathname) {
 		printf("IN_CREATE: ");
 	}
 
-	if((event->cookie != 0) && (event -> mask & IN_MOVE)) {
-		printf("IN_MOVE (rename): ");
-        }
+	if(event -> mask & IN_MOVED_FROM) {
+		cookie = event -> cookie;
+	}
+			
+	if(event -> mask & IN_MOVED_TO) {
+		if ((event -> cookie) == cookie) {
+			printf("IN_MOVE (rename): ");
+			}
+		}
 
-        if(wd == event->wd) {
+		if (wd == event -> wd) {
 		printf("%s/", pathname);
-        }
-        if(event->len) {
-        	printf("%s", event->name);
-        }
+		}
+		if (event->len) {
+			if ((event -> name) == NULL)
+			       printf("?");
+			else
+				printf("%s", event->name);
+		}
 
-        if(event->mask & IN_ISDIR) {
-        	printf(" [directory]\n");
-        } 
-	else 	{
-            	printf(" [file]\n");
-        	}
-    	}
+		if (event-> mask & IN_ISDIR) {
+			printf(" [directory]\n");
+		} else {
+			printf(" [file]\n");
+		}
+	}
 }
 }
-
 
 int main(int argc, char* argv[]) {
     	if(argc != 2) {
@@ -110,4 +120,5 @@ int main(int argc, char* argv[]) {
     	printf("Listening for events stopped.\n");
     	close(fd);
     	return 0;
+
 }
