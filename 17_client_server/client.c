@@ -28,4 +28,5 @@ int main(int argc, char* argv[]) {
         
     mq_close(queue); //удаляет связь между дескриптором очереди сообщений, mqdes, и его очередью сообщений
     return 0;
+
 }
