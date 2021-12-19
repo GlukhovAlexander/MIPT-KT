@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
     }
 
     //Создаём очередь
-    mqd_t queue = mq_open(argv[1], O_WRONLY); // O_WRONLY -> можем только посылать сообщения
+    mqd_t queue = mq_open(argv[1], O_WRONLY, 0622 ,NULL); // O_WRONLY -> можем только посылать сообщения
     if (queue == (mqd_t) -1) {
         perror("mq_open"); //В случае ошибки, mq_open() возвращает (mqd_t) -1
         return 1;
@@ -25,8 +25,7 @@ int main(int argc, char* argv[]) {
     }
 
     // cleanup:
-        mq_unlink(argv[1]); //удаляет очередь сообщений
-    // cleanup:
+        
     mq_close(queue); //удаляет связь между дескриптором очереди сообщений, mqdes, и его очередью сообщений
     return 0;
 }
