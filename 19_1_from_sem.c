@@ -38,16 +38,18 @@ int main(int argc, char * argv[]) {
 		.iterations = (argc > 1) ? atoi(argv[1]) : 1000,
 	};
 
-	pthread_t secondary_thread_id; //возвращает положительное значение, если ошибка
-	if (errno = pthread_create(&secondary_thread_id, NULL, thr_body, &data)) {
+	pthread_t secondary_thread_id; //возвращает положительное значение, если ошибка, 0, если успех
+	if (errno = pthread_create(&secondary_thread_id, NULL, thr_body, &data)) { //эта функция запускает новый поток в вызывающем процессе новый поток начинает выполнение с вызова *start_routine, в данном случае thr_body &data передаётся в качетве единственного аргумента
 		perror("pthread_create");
 		return 1;
 	}
-	for (int i = 0; i < 10; i++) {
+
+	for (int i = 0; i < data.iterations; i++) {
 		pthread_mutex_lock(&data.mutex);
 		data.counter++;
 		pthread_mutex_unlock(&data.mutex);
 	}
+
 	puts("Done (main)");
 	//нить исполнения, вызвавшая эту функцию переходит в состояние ожидания до завершения thread'a
 	pthread_join(secondary_thread_id, NULL);
