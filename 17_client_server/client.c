@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
     }
 
     //Создаём очередь
-    mqd_t queue = mq_open(argv[1], O_WRONLY, NULL); // O_WRONLY -> можем только посылать сообщения
+    mqd_t queue = mq_open(argv[1], O_WRONLY); // O_WRONLY -> можем только посылать сообщения
     if (queue == (mqd_t) -1) {
         perror("mq_open"); //В случае ошибки, mq_open() возвращает (mqd_t) -1
         return 1;
