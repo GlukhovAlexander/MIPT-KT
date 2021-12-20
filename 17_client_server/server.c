@@ -8,6 +8,16 @@
 #include <stdlib.h>
 #include <signal.h>
 
+volatile int g_last_signal;
+
+
+//Обработчик сигналов
+void sig_handler(int signum) {
+    g_last_signal = signum;
+}
+
+
+
 
 
 int main(int argc, char* argv[]) {
@@ -35,16 +45,26 @@ int main(int argc, char* argv[]) {
 	long mq_msgsize = q_inf.mq_msgsize; //переменная, отвечающую за верхний предел размера сообщений, которые могут быть помещены в очередь
 	char buf[mq_msgsize + 1];
 
+	if (signal(SIGINT, sig_handler) == SIG_ERR){
+                perror("signal(SIGINT)");
+                return -1;
+        }
+
+
+
+
+
 	while (1) {
 
 	size_t message = (size_t)mq_receive(queue, buf, (size_t)mq_msgsize, NULL); //количество байтов полученного сообщения
+
 	if (message == (size_t) -1) { //Проверка ошибки
 		perror("mq_receive"); 
 	break;
 	}
 
-	 buf[message] = '\0';
-	 printf("%s\n", buf);
+	buf[message] = '\0';
+	printf("%s\n", buf);
 	}  
 	
 	// cleanup:
