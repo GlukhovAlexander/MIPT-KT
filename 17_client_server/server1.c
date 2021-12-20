@@ -9,15 +9,16 @@
 #include <signal.h>
 
 volatile int g_last_signal;
+volatile siginfo_t *g_from_who;
 
 
 //Обработчик сигналов
-void sig_handler(int signum) {
-    g_last_signal = signum;
+void sig_handler(int signum, siginfo_t *info, void *ucontext) {
+  g_last_signal = signum;
+  g_from_who = info;
+  if (ucontext != NULL)
+    ucontext = NULL;
 }
-
-
-
 
 
 int main(int argc, char* argv[]) {
@@ -39,32 +40,20 @@ int main(int argc, char* argv[]) {
 	}
 
 //Получаем информацию про очередь
-	struct mq_attr q_inf;
-	mq_getattr(queue, &q_inf);
+	struct sigaction recieved = {};
+
+        recieved.sa_flags = SA_SIGINFO;
+        recieved.sa_sigaction = sig_handler;
 
 	long mq_msgsize = q_inf.mq_msgsize; //переменная, отвечающую за верхний предел размера сообщений, которые могут быть помещены в очередь
 	char buf[mq_msgsize + 1];
 
-	if (signal(SIGINT, sig_handler) == SIG_ERR){
-                perror("signal(SIGINT)");
-                return -1;
+	  for (int i = 0; i < NUMBER_OF_SIGNALS; i++) {
+                if (sigaction(signls[i], &recieved, NULL) < 0) {
+                        perror("sigaction");
+                        return -1;
+                }
         }
-	if (signal(SIGQUIT, sig_handler) == SIG_ERR) {  
-                perror("signal(SIGQUIT)");
-                return -1;
-        }
-        if (signal(SIGTSTP, sig_handler) == SIG_ERR) { 
-                perror("signal(SIGTSTP)");
-                return -1;      
-        } 
-        if (signal(SIGHUP, sig_handler) == SIG_ERR) { 
-                perror("signal(SIGHUP)");
-                return -1;
-        } 
-        if (signal(SIGTERM, sig_handler) == SIG_ERR) {
-                perror("signal(SIGTERM)");
-                return -1;
-	}
 
 
 
